@@ -43,7 +43,6 @@
       body {
         background-color: #f3faff;
         color: #003748;
-        overflow: hidden;
       }
       .glass {
         background: rgba(255, 255, 255, 0.75);
@@ -164,7 +163,7 @@
             </h3>
             <div class="grid grid-cols-2 gap-4">
               <button
-                onclick="setMode('×')"
+                onclick="setMode(event, '×')"
                 class="mode-card group p-6 rounded-3xl bg-surface_container_highest ring-2 ring-primary transition-all flex flex-col items-center"
               >
                 <span
@@ -174,7 +173,7 @@
                 <span class="font-label font-bold text-sm">Multiply</span>
               </button>
               <button
-                onclick="setMode('+')"
+                onclick="setMode(event, '+')"
                 class="mode-card group p-6 rounded-3xl bg-surface_container_low hover:bg-surface_container_high transition-all flex flex-col items-center"
               >
                 <span
@@ -184,7 +183,7 @@
                 <span class="font-label font-bold text-sm">Add</span>
               </button>
               <button
-                onclick="setMode('-')"
+                onclick="setMode(event, '-')"
                 class="mode-card group p-6 rounded-3xl bg-surface_container_low hover:bg-surface_container_high transition-all flex flex-col items-center"
               >
                 <span
@@ -194,7 +193,7 @@
                 <span class="font-label font-bold text-sm">Subtract</span>
               </button>
               <button
-                onclick="setMode('÷')"
+                onclick="setMode(event, '÷')"
                 class="mode-card group p-6 rounded-3xl bg-surface_container_low hover:bg-surface_container_high transition-all flex flex-col items-center"
               >
                 <span
@@ -204,7 +203,7 @@
                 <span class="font-label font-bold text-sm">Divide</span>
               </button>
               <button
-                onclick="setMode('²')"
+                onclick="setMode(event, '²')"
                 class="mode-card group p-6 rounded-3xl bg-surface_container_low hover:bg-surface_container_high transition-all flex flex-col items-center"
               >
                 <span
@@ -215,7 +214,7 @@
               </button>
 
               <button
-                onclick="setMode('³')"
+                onclick="setMode(event, '³')"
                 class="mode-card group p-6 rounded-3xl bg-surface_container_low hover:bg-surface_container_high transition-all flex flex-col items-center"
               >
                 <span
@@ -245,10 +244,81 @@
             </div>
           </div>
         </section>
+        <section
+          class="bg-surface_container_lowest p-8 rounded-[2.5rem] border border-outline_variant space-y-8"
+        >
+          <h3 class="font-headline text-xl font-bold">Session Configuration</h3>
+
+          <!-- RANGE ROW -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- LEFT RANGE -->
+            <div class="space-y-2">
+              <p
+                class="font-label text-xs uppercase tracking-widest text-on_surface_variant"
+              >
+                Left Range
+              </p>
+              <div class="flex items-center gap-3">
+                <input
+                  id="left-min"
+                  type="number"
+                  value="1"
+                  class="w-full bg-surface_container_highest rounded-xl py-3 px-4 text-center font-label text-sm"
+                />
+                <span class="text-on_surface_variant text-sm">to</span>
+                <input
+                  id="left-max"
+                  type="number"
+                  value="10"
+                  class="w-full bg-surface_container_highest rounded-xl py-3 px-4 text-center font-label text-sm"
+                />
+              </div>
+            </div>
+
+            <!-- RIGHT RANGE -->
+            <div class="space-y-2">
+              <p
+                class="font-label text-xs uppercase tracking-widest text-on_surface_variant"
+              >
+                Right Range
+              </p>
+              <div class="flex items-center gap-3">
+                <input
+                  id="right-min"
+                  type="number"
+                  value="1"
+                  class="w-full bg-surface_container_highest rounded-xl py-3 px-4 text-center font-label text-sm"
+                />
+                <span class="text-on_surface_variant text-sm">to</span>
+                <input
+                  id="right-max"
+                  type="number"
+                  value="10"
+                  class="w-full bg-surface_container_highest rounded-xl py-3 px-4 text-center font-label text-sm"
+                />
+              </div>
+            </div>
+          </div>
+
+          <!-- NUMBER OF QUESTIONS -->
+          <div class="space-y-2">
+            <p
+              class="font-label text-xs uppercase tracking-widest text-on_surface_variant"
+            >
+              Number of Questions
+            </p>
+            <input
+              id="question-count"
+              type="number"
+              value="10"
+              class="w-full max-w-xs mx-auto block bg-surface_container_highest rounded-2xl py-4 px-6 text-center font-headline text-xl"
+            />
+          </div>
+        </section>
 
         <button
           onclick="launchSession()"
-          class="primary-gradient w-full py-10 rounded-[2rem] text-white font-label font-bold text-3xl shadow-xl hover:scale-[1.01] active:scale-[0.98] transition-all"
+          class="primary-gradient mx-auto block px-10 py-5 rounded-full text-white font-label font-semibold text-lg shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.97] transition-all duration-200 flex items-center gap-3"
         >
           Enter Flow State
         </button>
@@ -340,6 +410,12 @@
           target: 10,
           startTime: null,
           timerRef: null,
+
+          // NEW CONFIG
+          leftMin: 1,
+          leftMax: 10,
+          rightMin: 1,
+          rightMax: 10,
         },
       };
 
@@ -357,9 +433,7 @@
 
       window.onload = function () {
         const lastUser = localStorage.getItem("cf_last_session_user");
-        if (lastUser) {
-          autoLogin(lastUser);
-        }
+        if (lastUser) autoLogin(lastUser);
       };
 
       function autoLogin(name) {
@@ -376,34 +450,40 @@
         if (!name) return;
 
         localStorage.setItem("cf_last_session_user", name);
-
         autoLogin(name);
       }
 
       function updateDashboard() {
-        document.getElementById("display-name").innerText = state.user.name;
+        const user = state.user;
+        const level = Math.floor(user.xp / 1000) + 1;
+
+        document.getElementById("display-name").innerText = user.name;
         document.getElementById("avatar").innerText =
-          state.user.name[0].toUpperCase();
+          user.name[0].toUpperCase();
         document.getElementById("total-xp").innerText =
-          state.user.xp.toLocaleString();
+          user.xp.toLocaleString();
+        document.getElementById("rank-label").innerText =
+          `Initiate Level ${level}`;
+
         const hist = document.getElementById("history-track");
-        hist.innerHTML = state.user.history.length
-          ? state.user.history
+        hist.innerHTML = user.history.length
+          ? user.history
               .slice(-3)
               .reverse()
               .map(
                 (h) => `
-      <div class="flex justify-between items-center p-4 bg-surface rounded-2xl">
-        <span class="font-label text-sm">${h.mode}</span>
-        <span class="font-headline font-bold text-secondary">${h.apm} APM</span>
-      </div>`,
+        <div class="flex justify-between items-center p-4 bg-surface rounded-2xl">
+          <span class="font-label text-sm">${h.mode}</span>
+          <span class="font-headline font-bold text-secondary">${h.apm} APM</span>
+        </div>`,
               )
               .join("")
           : `<p class="text-xs italic opacity-30">No neural data recorded yet.</p>`;
       }
 
-      function setMode(m) {
+      function setMode(e, m) {
         state.session.mode = m;
+
         document.querySelectorAll(".mode-card").forEach((c) => {
           c.classList.remove(
             "ring-2",
@@ -416,72 +496,102 @@
             "text-on_surface_variant",
           );
         });
-        const btn = event.currentTarget;
+
+        const btn = e.currentTarget;
         btn.classList.add(
           "ring-2",
           "ring-primary",
           "bg-surface_container_highest",
         );
+
         btn
           .querySelector("span:first-child")
           .classList.replace("text-on_surface_variant", "text-primary");
       }
-
       function launchSession() {
+        // READ USER CONFIG
+        state.session.leftMin =
+          parseInt(document.getElementById("left-min")?.value) || 1;
+        state.session.leftMax =
+          parseInt(document.getElementById("left-max")?.value) || 10;
+        state.session.rightMin =
+          parseInt(document.getElementById("right-min")?.value) || 1;
+        state.session.rightMax =
+          parseInt(document.getElementById("right-max")?.value) || 10;
+
+        state.session.target =
+          parseInt(document.getElementById("question-count")?.value) || 10;
+
         elements.dash.classList.add("hidden-section");
         elements.practice.classList.remove("hidden-section");
+
         state.session.active = true;
         state.session.correctCount = 0;
         state.session.startTime = Date.now();
+
         generateQuestion();
         updateDots();
+
         state.session.timerRef = setInterval(tick, 100);
         setTimeout(() => elements.input.focus(), 100);
       }
 
       function tick() {
         const elapsed = (Date.now() - state.session.startTime) / 1000;
+
         elements.timer.innerText = `${Math.floor(elapsed / 60)
           .toString()
           .padStart(2, "0")}:${Math.floor(elapsed % 60)
           .toString()
           .padStart(2, "0")}`;
-        if (state.session.correctCount > 0)
+
+        if (state.session.correctCount > 0) {
           elements.apm.innerText = (
             state.session.correctCount /
             (elapsed / 60)
           ).toFixed(1);
+        }
+      }
+
+      // RANDOM HELPER
+      function rand(min, max) {
+        return Math.floor(Math.random() * (max - min + 1)) + min;
       }
 
       function generateQuestion() {
-        const scale = 5 + state.session.correctCount * 2;
-        let a, b;
         const mode = state.session.mode;
 
+        const lmin = state.session.leftMin;
+        const lmax = state.session.leftMax;
+        const rmin = state.session.rightMin;
+        const rmax = state.session.rightMax;
+
+        let a, b;
+
         if (mode === "×") {
-          a = Math.floor(Math.random() * scale) + 2;
-          b = Math.floor(Math.random() * 12) + 2;
+          a = rand(lmin, lmax);
+          b = rand(rmin, rmax);
           state.session.currentAns = a * b;
         } else if (mode === "+") {
-          a = Math.floor(Math.random() * (scale * 5)) + 5;
-          b = Math.floor(Math.random() * (scale * 5)) + 5;
+          a = rand(lmin, lmax);
+          b = rand(rmin, rmax);
           state.session.currentAns = a + b;
         } else if (mode === "-") {
-          a = Math.floor(Math.random() * (scale * 5)) + 10;
-          b = Math.floor(Math.random() * a) + 2;
+          a = rand(lmin, lmax);
+          b = rand(rmin, Math.min(rmax, a));
           state.session.currentAns = a - b;
         } else if (mode === "÷") {
-          b = Math.floor(Math.random() * 10) + 2;
-          state.session.currentAns = Math.floor(Math.random() * 10) + 2;
+          b = rand(rmin, rmax);
+          state.session.currentAns = rand(lmin, lmax);
           a = b * state.session.currentAns;
         } else if (mode === "²") {
-          a = Math.floor(Math.random() * 25) + 2;
+          a = rand(lmin, lmax);
           b = 2;
-          state.session.currentAns = Math.pow(a, b);
+          state.session.currentAns = a * a;
         } else if (mode === "³") {
-          a = Math.floor(Math.random() * 12) + 2;
+          a = rand(lmin, lmax);
           b = 3;
-          state.session.currentAns = Math.pow(a, b);
+          state.session.currentAns = a * a * a;
         }
 
         if (["²", "³"].includes(mode)) {
@@ -489,48 +599,68 @@
         } else {
           elements.equation.innerHTML = `${a} <span class="text-primary">${mode}</span> ${b}`;
         }
+
         elements.input.value = "";
       }
 
       elements.input.addEventListener("input", (e) => {
         if (parseInt(e.target.value) === state.session.currentAns) {
           state.session.correctCount++;
+
           updateDots();
+
           elements.practice.classList.add("flash-success");
-          setTimeout(
-            () => elements.practice.classList.remove("flash-success"),
-            400,
-          );
-          if (state.session.correctCount >= state.session.target) endSession();
-          else generateQuestion();
+          setTimeout(() => {
+            elements.practice.classList.remove("flash-success");
+          }, 400);
+
+          if (state.session.correctCount >= state.session.target) {
+            endSession();
+          } else {
+            generateQuestion();
+          }
         }
       });
 
       function updateDots() {
         const container = document.getElementById("streak-dots");
         container.innerHTML = "";
+
         for (let i = 0; i < state.session.target; i++) {
           const dot = document.createElement("div");
-          dot.className = `w-2 h-2 rounded-full transition-all duration-500 ${i < state.session.correctCount ? "bg-secondary w-6" : "bg-surface_container_highest"}`;
+          dot.className = `w-2 h-2 rounded-full transition-all duration-500 ${
+            i < state.session.correctCount
+              ? "bg-secondary w-6"
+              : "bg-surface_container_highest"
+          }`;
           container.appendChild(dot);
         }
       }
 
       function endSession() {
         clearInterval(state.session.timerRef);
+
         const finalApm = (
           state.session.target /
           ((Date.now() - state.session.startTime) / 60000)
         ).toFixed(1);
+
         const xpGain = Math.round(finalApm * 10);
+
         state.user.xp += xpGain;
-        state.user.history.push({ mode: state.session.mode, apm: finalApm });
+        state.user.history.push({
+          mode: state.session.mode,
+          apm: finalApm,
+        });
+
         localStorage.setItem(
           "cf_user_" + state.user.name,
           JSON.stringify(state.user),
         );
+
         document.getElementById("res-apm").innerText = finalApm;
         document.getElementById("res-xp").innerText = `+${xpGain}`;
+
         elements.overlay.classList.remove("hidden-section");
       }
 
@@ -538,6 +668,7 @@
         elements.overlay.classList.add("hidden-section");
         elements.practice.classList.add("hidden-section");
         elements.dash.classList.remove("hidden-section");
+
         updateDashboard();
       }
 
@@ -547,36 +678,6 @@
           elements.practice.classList.add("hidden-section");
           elements.dash.classList.remove("hidden-section");
         }
-      }
-
-      function updateDashboard() {
-        const user = state.user;
-
-        const currentLevel = Math.floor(user.xp / 1000) + 1;
-
-        document.getElementById("display-name").innerText = user.name;
-        document.getElementById("avatar").innerText =
-          user.name[0].toUpperCase();
-        document.getElementById("total-xp").innerText =
-          user.xp.toLocaleString();
-
-        document.getElementById("rank-label").innerText =
-          `Initiate Level ${currentLevel}`;
-
-        const hist = document.getElementById("history-track");
-        hist.innerHTML = user.history.length
-          ? user.history
-              .slice(-3)
-              .reverse()
-              .map(
-                (h) => `
-    <div class="flex justify-between items-center p-4 bg-surface rounded-2xl">
-      <span class="font-label text-sm">${h.mode}</span>
-      <span class="font-headline font-bold text-secondary">${h.apm} APM</span>
-    </div>`,
-              )
-              .join("")
-          : `<p class="text-xs italic opacity-30">No neural data recorded yet.</p>`;
       }
     </script>
   </body>
